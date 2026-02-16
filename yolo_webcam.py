@@ -17,7 +17,7 @@ area_alerta = 40000
 
 #sistema alerta e cooldown
 ultimo_alerta = 0
-cooldown_alerta = 3 
+cooldown_alerta = 5
 ultimo_nivel = -1
 #--------
 
