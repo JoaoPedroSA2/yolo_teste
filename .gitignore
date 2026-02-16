@@ -1,0 +1,7 @@
+venv/
+venv_yolo/
+venv_labelimg/
+__pycache__/
+*.pt
+runs/
+tempCodeRunnerFile.*
