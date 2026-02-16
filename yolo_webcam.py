@@ -2,8 +2,7 @@ import cv2
 from ultralytics import YOLO
 import winsound
 import time
-import os
-import threading
+from funcoes import *
 
 model = YOLO("yolov8n.pt")
 
@@ -19,14 +18,13 @@ area_alerta = 40000
 #sistema alerta e cooldown
 ultimo_alerta = 0
 cooldown_alerta = 3 
+ultimo_nivel = -1
 #--------
 
-def falar(texto):
-    def run(): #Função para rodar a fala em uma thread separada
-        comando = f'powershell -Command "Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak(\'{texto}\');"'
-        os.system(comando)
-
-    threading.Thread(target=run,daemon=True).start() #Inicia a thread para falar o texto
+#Configurações para direcao
+largura_frame = 540
+centro_tela = largura_frame / 2
+#-----------------
 
 # Loop principal
 while True:
@@ -41,21 +39,17 @@ while True:
         confs = results[0].boxes.conf
         classes = results[0].boxes.cls
         
-        index = int(confs.argmax()) #Encontra o índice da caixa com a maior confiança
-        obj = model.names[int(classes[index])]
-        x1,y1,x2,y2 = boxes[index]
-        comprimento = x2 - x1
-        altura = y2 - y1
+        prioritario = objeto_prioritario(boxes, classes, model, centro_tela, largura_frame) #Encontra o objeto prioritário
 
-        area = comprimento * altura
+        if prioritario:
+            tempo_atual = time.time()  #Obtém o tempo atual
 
-        calculo_proximidade = 0.7 * altura + 0.3 * (area ** 0.5) #Cálculo de proximidade baseado na altura e área da caixa delimitadora
-
-        tempo_atual = time.time()
-
-        if calculo_proximidade > 300 and tempo_atual - ultimo_alerta > cooldown_alerta:  #Verifica se o objeto está próximo e se o cooldown do alerta passou
-            falar(f"Alerta: {obj} detectado próximo!")  #Fala o alerta  
-            ultimo_alerta = tempo_atual  #Atualiza o tempo do último alerta
+            if prioritario["nivel"] == 1 and tempo_atual - ultimo_alerta > cooldown_alerta:
+                falar(f"Alerta: {prioritario['obj']} muito próximo {prioritario['direcao']}")  #Fala o alerta para objetos muito próximos
+                ultimo_alerta = tempo_atual  #Atualiza o tempo do último alerta
+            elif prioritario["nivel"] == 0 and tempo_atual - ultimo_alerta > cooldown_alerta:
+                falar(f"Cuidado: {prioritario['obj']} perto {prioritario['direcao']}")  #Fala o alerta para objetos próximos
+                ultimo_alerta = tempo_atual  #Atualiza o tempo do último alerta
 
     frame_anotado = results[0].plot() #Desenha as caixas delimitadoras e rótulos no frame
 
