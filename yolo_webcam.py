@@ -45,10 +45,10 @@ while True:
             tempo_atual = time.time()  #Obtém o tempo atual
 
             if prioritario["nivel"] == 1 and tempo_atual - ultimo_alerta > cooldown_alerta:
-                falar(f"Alerta: {prioritario['obj']} muito próximo {prioritario['direcao']}")  #Fala o alerta para objetos muito próximos
+                falar(f"Alerta: {prioritario['obj']} muito próximo {prioritario['direcao']}", nivel=2)  #Fala o alerta para objetos muito próximos
                 ultimo_alerta = tempo_atual  #Atualiza o tempo do último alerta
             elif prioritario["nivel"] == 0 and tempo_atual - ultimo_alerta > cooldown_alerta:
-                falar(f"Cuidado: {prioritario['obj']} perto {prioritario['direcao']}")  #Fala o alerta para objetos próximos
+                falar(f"Cuidado: {prioritario['obj']} perto {prioritario['direcao']}", nivel=1)  #Fala o alerta para objetos próximos
                 ultimo_alerta = tempo_atual  #Atualiza o tempo do último alerta
 
     frame_anotado = results[0].plot() #Desenha as caixas delimitadoras e rótulos no frame
