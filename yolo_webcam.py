@@ -18,13 +18,17 @@ area_alerta = 40000
 #sistema alerta e cooldown
 ultimo_alerta = 0
 cooldown_alerta = 5
-ultimo_nivel = -1
 #--------
 
 #Configurações para direcao
 largura_frame = 540
 centro_tela = largura_frame / 2
 #-----------------
+
+#Variáveis para armazenar o último objeto e direção detectados
+ultimo_obj = None
+ultimo_direcao = None
+ultimo_nivel = None
 
 # Loop principal
 while True:
@@ -44,12 +48,24 @@ while True:
         if prioritario:
             tempo_atual = time.time()  #Obtém o tempo atual
 
-            if prioritario["nivel"] == 1 and tempo_atual - ultimo_alerta > cooldown_alerta:
-                falar(f"Alerta: {prioritario['obj']} muito próximo {prioritario['direcao']}", nivel=2)  #Fala o alerta para objetos muito próximos
-                ultimo_alerta = tempo_atual  #Atualiza o tempo do último alerta
-            elif prioritario["nivel"] == 0 and tempo_atual - ultimo_alerta > cooldown_alerta:
-                falar(f"Cuidado: {prioritario['obj']} perto {prioritario['direcao']}", nivel=1)  #Fala o alerta para objetos próximos
-                ultimo_alerta = tempo_atual  #Atualiza o tempo do último alerta
+            #Armazena as informações do último objeto detectado para evitar alertas repetitivos
+            atual_obj = prioritario['obj']
+            atual_direcao = prioritario['direcao']
+            atual_nivel = prioritario['nivel'] 
+
+            mudou = (atual_obj != ultimo_obj or atual_direcao != ultimo_direcao or atual_nivel != ultimo_nivel) #Verifica se houve mudança no objeto, direção ou nível
+
+            if mudou and tempo_atual - ultimo_alerta > cooldown_alerta:
+                if atual_nivel == 1:
+                    falar(f"Alerta: {prioritario['obj']} muito próximo {prioritario['direcao']}")  #Fala o alerta para objetos muito próximos
+                    ultimo_alerta = tempo_atual  #Atualiza o tempo do último alerta
+                elif atual_nivel == 0:
+                    falar(f"Cuidado: {prioritario['obj']} perto {prioritario['direcao']}")  #Fala o alerta para objetos próximos
+                    ultimo_alerta = tempo_atual  #Atualiza o tempo do último alerta
+            
+                ultimo_obj = atual_obj
+                ultimo_direcao = atual_direcao
+                ultimo_nivel = atual_nivel
 
     frame_anotado = results[0].plot() #Desenha as caixas delimitadoras e rótulos no frame
 

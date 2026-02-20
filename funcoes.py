@@ -53,9 +53,9 @@ def objeto_prioritario(boxes, classes, model, centro_tela, largura_frame):
             "proximidade": proximidade
         }) #Adiciona as informações do objeto detectado à lista
 
-        if not objeto_detectado:
-            return None
+    if not objeto_detectado:
+        return None
         
-        mais_perto = max(objeto_detectado, key=lambda x: x["proximidade"])
-        return mais_perto #Retorna o objeto mais próximo com base na proximidade calculada
+    mais_perto = max(objeto_detectado, key=lambda x: x["proximidade"])
+    return mais_perto #Retorna o objeto mais próximo com base na proximidade calculada
 
