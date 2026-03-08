@@ -3,8 +3,19 @@ from ultralytics import YOLO
 import winsound
 import time
 from funcoes import *
+import torch
+import numpy as np
 
 model = YOLO("yolov8n.pt")
+model_midas = "MiDaS_small"  #Modelo MiDaS para estimativa de profundidade
+
+midas = torch.hub.load("intel-isl/MiDaS", model_midas)  #Carrega o modelo MiDaS
+midas.eval()  #Coloca o modelo MiDaS em modo de avaliação
+
+midas_tranforms = torch.hub.load("intel-isl/MiDaS", "transforms")
+if model_midas == "MiDaS_small":
+    transform = midas_tranforms.small_transform  #Transformação para o modelo MiDaS pequeno
+
 
 #-----configurações da webcam------
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -37,6 +48,22 @@ while True:
     if not ret:
         break
 
+    img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) #Converte o frame para RGB para o modelo MiDaS
+    
+    pre_proc = transform(img)
+
+    with torch.no_grad():
+        prediction = midas(pre_proc)  #Realiza a previsão de profundidade usando o modelo MiDaS
+    
+    prediction = torch.nn.functional.interpolate(
+        prediction.unsqueeze(1),
+        size=img.shape[:2],
+        mode="bicubic",
+        align_corners=False,
+    ).squeeze()  #Redimensiona a previsão de profundidade para o tamanho do frame original
+
+    mapa_profundidade = prediction.cpu().numpy()  #Converte a previsão de profundidade para um array NumPy
+
     if not lendo_texto: 
         results = model(frame) #Realiza detecção no frame
 
@@ -45,7 +72,7 @@ while True:
             confs = results[0].boxes.conf
             classes = results[0].boxes.cls
             
-            prioritario = objeto_prioritario(boxes, classes, model, centro_tela, largura_frame) #Encontra o objeto prioritário
+            prioritario = objeto_prioritario(boxes, classes, model, centro_tela,largura_frame, mapa_profundidade) #Encontra o objeto prioritário
 
             if prioritario: 
                 tempo_atual = time.time()  #Obtém o tempo atual

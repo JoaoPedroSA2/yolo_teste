@@ -3,6 +3,9 @@ import os
 import pytesseract
 import cv2
 import win32com.client 
+import numpy as np
+import torch
+
 
 speaker = win32com.client.Dispatch("SAPI.SpVoice") #Configura o mecanismo de fala do Windows
 lock_fala = threading.Lock() #Cria um lock para controlar o acesso à fala, evitando sobreposição de falas
@@ -33,22 +36,24 @@ def direcao_objeto(centro_obj, centro_tela, largura_frame):
     else:
         return "no centro"
 
-def objeto_prioritario(boxes, classes, model, centro_tela, largura_frame):
+def objeto_prioritario(boxes, classes, model, centro_tela, largura_frame, mapa_profundidade):
     objeto_detectado = [] #Lista para armazenar os objetos detectados com suas informações
 
     for i in range(len(boxes)): #Itera sobre os objetos detectados
         x1, y1, x2, y2 = boxes[i]
         obj = model.names[int(classes[i])]
 
-        #informações de tamanho e proximidade
+        #informações de tamanho e profundidade
         comprimento = x2 - x1
         altura = y2 - y1
         area = comprimento * altura
 
-        proximidade = 0.7 * altura + 0.3 * (area ** 0.5) 
+        regiao = mapa_profundidade[int((y1+y2)/2), int((x1+x2)/2)] #Obtém a profundidade do centro do objeto a partir do mapa de profundidade
+        profundidade = regiao.mean() #Calcula a média da profundidade na região do objeto para obter uma estimativa mais precisa
+
         #---------------------------------
 
-        nivel = nivel_distancia(proximidade) #Determina o nível de proximidade com base na função definida anteriormente
+        nivel = nivel_distancia(profundidade) #Determina o nível de proximidade com base na função definida anteriormente
 
         centro_obj = (x1 + x2) / 2 #Calcula o centro do objeto para determinar a direção
 
@@ -58,14 +63,14 @@ def objeto_prioritario(boxes, classes, model, centro_tela, largura_frame):
             "obj": obj,
             "nivel":nivel,
             "direcao": direcao,
-            "proximidade": proximidade
+            "profundidade": profundidade
         }) #Adiciona as informações do objeto detectado à lista
 
     if not objeto_detectado:
         return None
         
-    mais_perto = max(objeto_detectado, key=lambda x: x["proximidade"])
-    return mais_perto #Retorna o objeto mais próximo com base na proximidade calculada
+    mais_perto = min(objeto_detectado, key=lambda x: x["profundidade"]) #Encontra o objeto mais próximo com base na profundidade calculada
+    return mais_perto #Retorna o objeto mais próximo com base na profundidade calculada
 
 def extrair_texto_imagem(frame):
    
